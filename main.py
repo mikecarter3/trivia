@@ -9,6 +9,8 @@ import pytesseract
 import argparse
 import cv2
 import os
+from nltk.corpus import stopwords
+import webbrowser
 
 def ParseArgs():
     # construct the argument parse and parse the arguments
@@ -21,10 +23,10 @@ def ParseArgs():
     return args
 
 def LoadImageAndPreprocess(args):
-    # load the example image and convert it to grayscale
+    # load the example image and convert it to gray-scale
     image = cv2.imread(args["image"])
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # check to see if we should apply thresholding to preprocess the
+    # check to see if we should apply thresholding to pre-process the
     # image
     if args["preprocess"] == "thresh":
         gray = cv2.threshold(gray, 0, 255,
@@ -33,7 +35,7 @@ def LoadImageAndPreprocess(args):
     # noise
     elif args["preprocess"] == "blur":
         gray = cv2.medianBlur(gray, 3)
-    # write the grayscale image to disk as a temporary file so we can
+    # write the gray-scale image to disk as a temporary file so we can
     # apply OCR to it
     filename = "{}.png".format(os.getpid())
     cv2.imwrite(filename, gray)
@@ -46,6 +48,33 @@ def ReadText(filename):
     os.remove(filename)
     return text
 
+def ExtractQuestion(question_raw, s):
+    lines = question_raw.split("\n")
+    lines = [line for line in lines if len(line)>2]
+    question = " ".join(lines).strip()
+    keywords = list(filter(lambda w: not w in s,question.split()))
+    return question, keywords
+
+def ExtractAnswers(answers_raw):
+    lines = answers_raw.split("\n")
+    i = 0
+    while len(lines) > 3:
+        lines = [line for line in lines if len(line) > i]
+        i += 1
+    while len(lines) < 3:
+        print("\nRead error: answer missed.\n")
+        lines.append("")
+    return lines
+
+def ParseText(text, s):
+    question_raw, answers_raw = text.split("?")
+    question, keywords = ExtractQuestion(question_raw, s)
+    answers = ExtractAnswers(answers_raw)
+    print("\nQuestion:\n" + question + "\n")
+    print("\nKeywords:\n" + str(keywords) + "\n")
+    print("\nAnswers:\n" + str(answers) + "\n")
+    return question, keywords, answers
+
 def DebugOutput(text, image, gray):
     print(text)
     # show the output images
@@ -53,16 +82,24 @@ def DebugOutput(text, image, gray):
     cv2.imshow("Output", gray)
     cv2.waitKey(0)
 
-def FilterText():
-    print('Would be filtering now...')
+def SearchGoogle(question, keywords, answers):
+    print("\n Searching google...\n")
+    url = "https://www.google.com.tr/search?q={}".format(question)
+    url0 = "https://www.google.com.tr/search?q={}".format(str(answers[0] + " " + question))
+    url1 = "https://www.google.com.tr/search?q={}".format(str(answers[1] + " " + question))
+    url2 = "https://www.google.com.tr/search?q={}".format(str(answers[2] + " " + question))
+    webbrowser.open(url, new=1)
+    webbrowser.open(url0, new=1)
+    webbrowser.open(url1, new=1)
+    webbrowser.open(url2, new=1)
 
-def SearchGoogle():
-    print('Would be searching google now...')
 
-
+# Initialize
+s = set(stopwords.words('english'))
 args = ParseArgs()
+# Run
 filename, image, gray = LoadImageAndPreprocess(args)
 text = ReadText(filename)
-FilterText()
+question, keywords, answers = ParseText(text, s)
 DebugOutput(text, image, gray)
-SearchGoogle()
+SearchGoogle(question, keywords, answers)
