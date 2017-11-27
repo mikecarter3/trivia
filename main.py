@@ -4,6 +4,7 @@
 
 # starter code from https://www.pyimagesearch.com/2017/07/10/using-tesseract-ocr-python
 
+import pyscreenshot as ImageGrab
 from PIL import Image
 import pytesseract
 import argparse
@@ -15,16 +16,28 @@ import webbrowser
 def ParseArgs():
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--image", required=True,
+    ap.add_argument("-i", "--image", required=False,
                     help="path to input image to be OCR'd")
     ap.add_argument("-p", "--preprocess", type=str, default="thresh",
                     help="type of preprocessing to be done")
     args = vars(ap.parse_args())
     return args
 
+def GrabScreen():
+    input("Press Enter to screenshot and start...")
+    image = ImageGrab.grab(bbox=(1250, 300, 1725, 775))  # X1,Y1,X2,Y2
+    #image.show()
+    filename = 'screencap.jpg'
+    image.save(filename, 'JPEG')
+    return filename
+
 def LoadImageAndPreprocess(args):
-    # load the example image and convert it to gray-scale
-    image = cv2.imread(args["image"])
+    if args["image"]:
+        # load the example image and convert it to gray-scale
+        image = cv2.imread(args["image"])
+    else:
+        image = cv2.imread(GrabScreen())
+
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # check to see if we should apply thresholding to pre-process the
     # image
@@ -50,7 +63,7 @@ def ReadText(filename):
 
 def ExtractQuestion(question_raw, s):
     lines = question_raw.split("\n")
-    lines = [line for line in lines if len(line)>2]
+    lines = [line for line in lines if len(line)>=2]
     question = " ".join(lines).strip()
     keywords = list(filter(lambda w: not w in s,question.split()))
     return question, keywords
@@ -85,13 +98,13 @@ def DebugOutput(text, image, gray):
 def SearchGoogle(question, keywords, answers):
     print("\n Searching google...\n")
     url = "https://www.google.com.tr/search?q={}".format(question)
-    url0 = "https://www.google.com.tr/search?q={}".format(str(answers[0] + " " + question))
-    url1 = "https://www.google.com.tr/search?q={}".format(str(answers[1] + " " + question))
-    url2 = "https://www.google.com.tr/search?q={}".format(str(answers[2] + " " + question))
+    #url0 = "https://www.google.com.tr/search?q={}".format(str(answers[0] + " " + question))
+    #url1 = "https://www.google.com.tr/search?q={}".format(str(answers[1] + " " + question))
+    #url2 = "https://www.google.com.tr/search?q={}".format(str(answers[2] + " " + question))
     webbrowser.open(url, new=1)
-    webbrowser.open(url0, new=1)
-    webbrowser.open(url1, new=1)
-    webbrowser.open(url2, new=1)
+    #webbrowser.open(url0, new=1)
+    #webbrowser.open(url1, new=1)
+    #webbrowser.open(url2, new=1)
 
 
 # Initialize
@@ -101,5 +114,5 @@ args = ParseArgs()
 filename, image, gray = LoadImageAndPreprocess(args)
 text = ReadText(filename)
 question, keywords, answers = ParseText(text, s)
-DebugOutput(text, image, gray)
+#DebugOutput(text, image, gray)
 SearchGoogle(question, keywords, answers)
