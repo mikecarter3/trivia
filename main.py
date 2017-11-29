@@ -6,12 +6,14 @@
 
 import pyscreenshot as ImageGrab
 from PIL import Image
+#import numpy as np
 import pytesseract
 import argparse
 import cv2
 import os
 from nltk.corpus import stopwords
 import webbrowser
+#import wikipedia
 
 def ParseArgs():
     # construct the argument parse and parse the arguments
@@ -25,7 +27,7 @@ def ParseArgs():
 
 def GrabScreen():
     input("Press Enter to screenshot and start...")
-    image = ImageGrab.grab(bbox=(1250, 300, 1725, 775))  # X1,Y1,X2,Y2
+    image = ImageGrab.grab(bbox=(1200, 200, 1775, 900))  # X1,Y1,X2,Y2
     #image.show()
     filename = 'screencap.jpg'
     image.save(filename, 'JPEG')
@@ -106,6 +108,31 @@ def SearchGoogle(question, keywords, answers):
     #webbrowser.open(url1, new=1)
     #webbrowser.open(url2, new=1)
 
+#TODO(Mike): Finish this
+def CalcScore(candidate, keywords):
+    score = 0
+    try:
+        text = wikipedia.summary(candidate, sentences=4)
+        print(text)
+        for keyword in keywords:
+            if str(keyword) in text:
+                score += 1
+    except:
+        score = -1
+    return score
+
+def AutoAnswer(keywords, answers):
+    scores = [0,0,0]
+    best_index = 0
+    best_score = -1
+    for i in range(0,3):
+        scores[i] = CalcScore(answers[i], keywords)
+        if scores[i] > best_score:
+            best_index = i
+            best_score = scores[i]
+        print('\nAnswer: {} ... Score: {}\n'.format(answers[i], scores[i]))
+    print('\nBEST ANSWER: {}\n'.format(answers[best_index]))
+
 
 # Initialize
 s = set(stopwords.words('english'))
@@ -116,3 +143,4 @@ text = ReadText(filename)
 question, keywords, answers = ParseText(text, s)
 #DebugOutput(text, image, gray)
 SearchGoogle(question, keywords, answers)
+#AutoAnswer(keywords, answers)
