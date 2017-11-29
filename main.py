@@ -15,7 +15,7 @@ from nltk.corpus import stopwords
 import webbrowser
 #import wikipedia
 
-def ParseArgs():
+def parse_args():
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--image", required=False,
@@ -25,7 +25,9 @@ def ParseArgs():
     args = vars(ap.parse_args())
     return args
 
-def GrabScreen():
+#TODO(mikecarter3): Do this with libimobiledevice instead of screen mirroring
+#TODO(mikecarter3): Remove hard-coding of screencap rectangle
+def grab_screen():
     input("Press Enter to screenshot and start...")
     image = ImageGrab.grab(bbox=(1200, 200, 1775, 900))  # X1,Y1,X2,Y2
     #image.show()
@@ -33,12 +35,12 @@ def GrabScreen():
     image.save(filename, 'JPEG')
     return filename
 
-def LoadImageAndPreprocess(args):
+def load_image_and_preprocess(args):
     if args["image"]:
         # load the example image and convert it to gray-scale
         image = cv2.imread(args["image"])
     else:
-        image = cv2.imread(GrabScreen())
+        image = cv2.imread(grab_screen())
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # check to see if we should apply thresholding to pre-process the
@@ -56,21 +58,21 @@ def LoadImageAndPreprocess(args):
     cv2.imwrite(filename, gray)
     return filename, image, gray
 
-def ReadText(filename):
+def read_text(filename):
     # load the image as a PIL/Pillow image, apply OCR, and then delete
     # the temporary file
     text = pytesseract.image_to_string(Image.open(filename))
     os.remove(filename)
     return text
 
-def ExtractQuestion(question_raw, s):
+def extract_question(question_raw, s):
     lines = question_raw.split("\n")
     lines = [line for line in lines if len(line)>=2]
     question = " ".join(lines).strip()
     keywords = list(filter(lambda w: not w in s,question.split()))
     return question, keywords
 
-def ExtractAnswers(answers_raw):
+def extract_answers(answers_raw):
     lines = answers_raw.split("\n")
     i = 0
     while len(lines) > 3:
@@ -81,23 +83,24 @@ def ExtractAnswers(answers_raw):
         lines.append("")
     return lines
 
-def ParseText(text, s):
+def parse_text(text, s):
     question_raw, answers_raw = text.split("?")
-    question, keywords = ExtractQuestion(question_raw, s)
-    answers = ExtractAnswers(answers_raw)
+    question, keywords = extract_question(question_raw, s)
+    answers = extract_answers(answers_raw)
     print("\nQuestion:\n" + question + "\n")
     print("\nKeywords:\n" + str(keywords) + "\n")
     print("\nAnswers:\n" + str(answers) + "\n")
     return question, keywords, answers
 
-def DebugOutput(text, image, gray):
+def debug_output(text, image, gray):
     print(text)
     # show the output images
     cv2.imshow("Image", image)
     cv2.imshow("Output", gray)
     cv2.waitKey(0)
 
-def SearchGoogle(question, keywords, answers):
+#TODO(mikecarter3): What are quicker ways of pulling up google?
+def search_google(question, keywords, answers):
     print("\n Searching google...\n")
     url = "https://www.google.com.tr/search?q={}".format(question)
     #url0 = "https://www.google.com.tr/search?q={}".format(str(answers[0] + " " + question))
@@ -108,8 +111,8 @@ def SearchGoogle(question, keywords, answers):
     #webbrowser.open(url1, new=1)
     #webbrowser.open(url2, new=1)
 
-#TODO(Mike): Finish this
-def CalcScore(candidate, keywords):
+#TODO(mikecarter3): Write scoring function based on keyword frequency in wikipedia page.
+def calculate_score(candidate, keywords):
     score = 0
     try:
         text = wikipedia.summary(candidate, sentences=4)
@@ -121,12 +124,12 @@ def CalcScore(candidate, keywords):
         score = -1
     return score
 
-def AutoAnswer(keywords, answers):
+def auto_answer(keywords, answers):
     scores = [0,0,0]
     best_index = 0
     best_score = -1
     for i in range(0,3):
-        scores[i] = CalcScore(answers[i], keywords)
+        scores[i] = calculate_score(answers[i], keywords)
         if scores[i] > best_score:
             best_index = i
             best_score = scores[i]
@@ -136,11 +139,11 @@ def AutoAnswer(keywords, answers):
 
 # Initialize
 s = set(stopwords.words('english'))
-args = ParseArgs()
+args = parse_args()
 # Run
-filename, image, gray = LoadImageAndPreprocess(args)
-text = ReadText(filename)
-question, keywords, answers = ParseText(text, s)
-#DebugOutput(text, image, gray)
-SearchGoogle(question, keywords, answers)
-#AutoAnswer(keywords, answers)
+filename, image, gray = load_image_and_preprocess(args)
+text = read_text(filename)
+question, keywords, answers = parse_text(text, s)
+#debug_output(text, image, gray)
+search_google(question, keywords, answers)
+#auto_answer(keywords, answers)
