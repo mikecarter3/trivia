@@ -13,7 +13,7 @@ import cv2
 import os
 from nltk.corpus import stopwords
 import webbrowser
-#import wikipedia
+import wikipedia
 
 def parse_args():
     # construct the argument parse and parse the arguments
@@ -58,6 +58,7 @@ def load_image_and_preprocess(args):
     cv2.imwrite(filename, gray)
     return filename, image, gray
 
+#TODO(mikecarter3): Do smarter pattern-matching to find regions on screen to read text
 def read_text(filename):
     # load the image as a PIL/Pillow image, apply OCR, and then delete
     # the temporary file
@@ -111,16 +112,18 @@ def search_google(question, keywords, answers):
     #webbrowser.open(url1, new=1)
     #webbrowser.open(url2, new=1)
 
-#TODO(mikecarter3): Write scoring function based on keyword frequency in wikipedia page.
 def calculate_score(candidate, keywords):
     score = 0
     try:
-        text = wikipedia.summary(candidate, sentences=4)
-        print(text)
+        wiki_page = wikipedia.page(candidate)
+        text = wiki_page.content
+        #text = wikipedia.summary(candidate, sentences=4)
+        #print(text)
         for keyword in keywords:
-            if str(keyword) in text:
-                score += 1
+            score += text.count(keyword)
+        score /= len(text)*.01 # The factor of 100 is just to make the number feel nicer
     except:
+        print("\nWikipedia article not found for query: {}\n".format(candidate))
         score = -1
     return score
 
@@ -137,13 +140,13 @@ def auto_answer(keywords, answers):
     print('\nBEST ANSWER: {}\n'.format(answers[best_index]))
 
 
-# Initialize
+### Initialize
 s = set(stopwords.words('english'))
 args = parse_args()
-# Run
+
+### Run
 filename, image, gray = load_image_and_preprocess(args)
 text = read_text(filename)
 question, keywords, answers = parse_text(text, s)
-#debug_output(text, image, gray)
-search_google(question, keywords, answers)
-#auto_answer(keywords, answers)
+#search_google(question, keywords, answers)
+auto_answer(keywords, answers)
