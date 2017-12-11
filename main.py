@@ -112,6 +112,7 @@ def search_google(question, keywords, answers):
     #webbrowser.open(url1, new=1)
     #webbrowser.open(url2, new=1)
 
+#TODO(mikecarter3): Use tf-idf instead of dumb stuff below
 def calculate_score(candidate, keywords):
     score = 0
     try:
@@ -120,7 +121,7 @@ def calculate_score(candidate, keywords):
         #text = wikipedia.summary(candidate, sentences=4)
         #print(text)
         for keyword in keywords:
-            score += text.count(keyword)
+            score += text.__contains__(keyword)
         score /= len(text)*.01 # The factor of 100 is just to make the number feel nicer
     except:
         print("\nWikipedia article not found for query: {}\n".format(candidate))
@@ -147,6 +148,7 @@ args = parse_args()
 ### Run
 filename, image, gray = load_image_and_preprocess(args)
 text = read_text(filename)
+text = "Which of these fictional characters live on 4 Privet Drive? \n\n\n\n\n Dursley \n\n\n\n\n\n Mary Poppins"
 question, keywords, answers = parse_text(text, s)
 #search_google(question, keywords, answers)
 auto_answer(keywords, answers)
